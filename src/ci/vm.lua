@@ -4,12 +4,17 @@ local VMS = {}
 local VM  = {}
 
 local function execute (command)
-  print ("Executing command: " .. command)
-  local handler = assert (io.popen (command, "r"))
-  local output  = assert (handler:read "*all")
+  local handler = assert (io.popen ([[ {{{command}}} 2>&1 ]] % {
+    command = command,
+  }, "r"))
+  local lines   = {}
+  for line in handler:lines () do
+    print (line)
+    lines [#lines+1] = line
+  end
   local status  = { handler:close () }
   if status [1] then
-    return output
+    return table.concat (lines, "\n")
   else
     return table.unpack (status)
   end
@@ -74,6 +79,7 @@ end
 
 function VM.__call (vm, command)
   assert (getmetatable (vm) == VM)
+  print ("Executing command: " .. command)
   return assert (execute ([[
     ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -p {{{port}}} {{{user}}}@127.0.0.1 {{{command}}}
   ]] % {
