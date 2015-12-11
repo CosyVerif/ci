@@ -89,4 +89,52 @@ function VM.__call (vm, command)
   }))
 end
 
+local Path = {}
+
+function VM.__index (vm, key)
+  assert (getmetatable (vm) == VM)
+  assert (type (key) == "string")
+  key = key:match "^(.-)[/]*$"
+  local found = execute ([[
+    ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -p {{{port}}} {{{user}}}@127.0.0.1 ls {{{path}}}
+  ]] % {
+    port = vm.port,
+    user = string.format ("%q", vm.user),
+    path = string.format ("%q", key),
+  })
+  if not found then
+    return nil
+  end
+  return setmetatable ({
+    vm   = vm,
+    path = key,
+  }, Path)
+end
+
+function VM.__newindex (vm, key, value)
+  assert (getmetatable (vm) == VM)
+  assert (type (key) == "string")
+  assert (getmetatable (value) == Path)
+  local tmp = os.tmpname ()
+  os.execute ([[ rm -f {{{tmp}}} && mkdir -p {{{tmp}}} ]] % {
+    tmp = tmp,
+  })
+  assert (execute ([[
+    scp -r -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -P {{{port}}} {{{user}}}@127.0.0.1:{{{path}}} {{{tmp}}}/copy
+  ]] % {
+    port = value.vm.port,
+    user = string.format ("%q", value.vm.user),
+    path = string.format ("%q", value.path),
+    tmp  = tmp,
+  }))
+  assert (execute ([[
+    scp -r -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -P {{{port}}} {{{tmp}}}/copy {{{user}}}@127.0.0.1:{{{path}}}
+  ]] % {
+    port = vm.port,
+    user = string.format ("%q", vm.user),
+    path = string.format ("%q", key),
+    tmp  = tmp,
+  }))
+end
+
 return setmetatable ({}, VMS)
