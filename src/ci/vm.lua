@@ -81,7 +81,7 @@ function VM.__call (vm, command)
   assert (getmetatable (vm) == VM)
   print ("Executing command: " .. command)
   return assert (execute ([[
-    ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -p {{{port}}} {{{user}}}@127.0.0.1 {{{command}}}
+    ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -o "LogLevel=quiet" -p {{{port}}} {{{user}}}@127.0.0.1 {{{command}}}
   ]] % {
     port    = vm.port,
     user    = string.format ("%q", vm.user),
@@ -96,7 +96,7 @@ function VM.__index (vm, key)
   assert (type (key) == "string")
   key = key:match "^(.-)[/]*$"
   local found = execute ([[
-    ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -p {{{port}}} {{{user}}}@127.0.0.1 ls {{{path}}}
+    ssh -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" -o "LogLevel=quiet" -p {{{port}}} {{{user}}}@127.0.0.1 ls {{{path}}}
   ]] % {
     port = vm.port,
     user = string.format ("%q", vm.user),
