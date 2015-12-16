@@ -2,6 +2,7 @@ local Argparse = require "argparse"
 local Coronest = require "coroutine.make"
 local I18n     = require "i18n"
 local Lustache = require "lustache"
+local Copev    = require "copas.ev"
 
 _G.coroutine = Coronest ()
 
@@ -63,11 +64,14 @@ if not ok2 then
   })
   os.exit (1)
 end
-local ok3, err3 = pcall (loaded, {})
-if not ok3 then
-  print ((I18n "ci:error") % {
-    error = err3,
-  })
-end
 
-collectgarbage "collect"
+Copev.addthread (loaded, {
+  copev = Copev,
+  -- TODO
+})
+Copev.loop ()
+
+Copev.addthread (function ()
+  collectgarbage "collect"
+end)
+Copev.loop ()
